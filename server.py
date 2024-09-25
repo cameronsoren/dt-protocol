@@ -20,38 +20,36 @@ context_maps = {
     }
 }
 
-# Use the same bytes for context-switching as data bytes
-def check_for_context_switch(byte_value, current_context):
-    # Define potential context-switching conditions
-    # We're reusing the same byte values (e.g., 0x01) for context switching
-    if byte_value == 0x01 and current_context == 'user':
-        return 'product'
-    elif byte_value == 0x01 and current_context == 'product':
-        return 'device_info'
-    elif byte_value == 0x01 and current_context == 'device_info':
-        return 'control'
-    elif byte_value == 0x01 and current_context == 'control':
-        return 'user'
-    else:
-        return None  # No context switch
+# Define consistent context-switch bytes
+context_switch_map = {
+    0x01: 'user',
+    0x02: 'product',
+    0x03: 'device_info',
+    0x04: 'control'
+}
+
+# Function to check and switch contexts based on the byte received
+def check_for_context_switch(byte_value):
+    if byte_value in context_switch_map:
+        return context_switch_map[byte_value]
+    return None
 
 def start_dt_server():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('localhost', 9999))
 
-    print("dt Protocol Server is running...")
+    print("DT Protocol Server is running...")
 
-    # Initialize context to 'user'
-    current_context = 'user'
+    current_context = 'user'  # Default context
 
     while True:
         data, addr = sock.recvfrom(1)  # Receive 1 byte
         byte_value = data[0]
 
         # Check if the byte should switch context
-        new_context = check_for_context_switch(byte_value, current_context)
+        new_context = check_for_context_switch(byte_value)
 
-        if new_context:  # If the byte is for context-switching
+        if new_context:
             current_context = new_context
             response = f"Switched to {current_context} context"
         else:
@@ -61,6 +59,8 @@ def start_dt_server():
         sock.sendto(response.encode(), addr)
 
 start_dt_server()
+
+
 
 
 
